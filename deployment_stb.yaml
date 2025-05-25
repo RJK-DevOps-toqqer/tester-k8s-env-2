@@ -1,0 +1,191 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: toqqer-secret
+  namespace: dev-lower-lc
+type: Opaque
+data:
+  username: dG9xcWVybWFzdGVy
+  password: dG9xcWVybWFzdGVy
+  jwt-token: dG9xcWVyYXBwbGljYXRpb25oeWRlcmFiYWQxMjM0NTY3ODl0b3FxZXJhcHBsaWNhdGlvbmh5ZGVyYWJhZDEyMzQ1Njc4OQ==
+  activemq-username: YWRtaW4=
+  activemq-password: YWRtaW4=
+  activemq-topic: ZXZlbnREYXRhVG9waWM=
+  kaleyra-sid: SFhJTjE3OTUzMDU2MDlJTg==
+  kaleyra-apikey: QTljZWU2MGMyYTM5OThjNGEwZDI1YTVhYWZjMjUxYTZl
+  kaleyra-senderid: VklER0FU
+  kaleyra-templateid: MTAwNzM5MDUwNjQwNzQ5ODU2NA==
+  twilio-account-sid: QUMwZTFkMGMxM2FhODViOTQ5ZTcwMDg3Y2RmZjE2ZjI0Mw==
+  twilio-auth-token: MzcwZWEyOGZlZjYwZGI1ZmUyM2MxZWEyMzllNjVjNDk=
+  twilio-number: KzE0MDkyMTUzMjEz
+  vonage-api-key: NzU3MmZkYmE=
+  vonage-api-secret: Z0ZNbU9qVmVCbDc4UmxLRg==
+  # server-ssl-key-store-password: dG9ZEc5eGNXVnk=
+  spring-datasource-username: YWRtaW4=  
+  spring-datasource-password: dG9xcWVy
+  # jwt-secret: dG9xcWVyYXBwbGljYXRpb25oeWRlcmFiYWQxMjM0NTY3ODl0b3FxZXJhcHBsaWNhdGlvbmh5ZGVyYWJhZDEyMzQ1Njc4OQ==
+  jwt-tokenValidity: ODY0MDAwMDA=
+  spring-datasource-driver-class-name: Y29tLm15c3FsLmNqLmpkYmMuRHJpdmVy  
+  # spring-datasource-url: jdbc:mysql://toqqerdb01.cqjqxuacbwrp.ap-south-1.rds.amazonaws.com:3306/toqqermaster?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false
+  spring-datasource-username: dG9xcWVybWFzdGVy
+  spring-datasource-password: dG9xcWVybWFzdGVy  
+  spring-mail-host: c210cC5nbWFpbC5jb20=
+  spring-mail-port: NTg3
+  spring-mail-username: Y3VzdG9tZXJjYXJlQHRvcXFlci5jb20=
+  spring-mail-password: YmJhdHNicXFucWZlam10bw==
+  spring-mail-properties-mail-smtp-auth: dHJ1ZQ==
+  spring-mail-properties-mail-smtp-connectiontimeout: NTAwMA==
+  spring-mail-properties-mail-smtp-timeout: NTAwMA==
+  spring-mail-properties-mail-smtp-writetimeout: NTAwMA==
+  spring-mail-properties-mail-smtp-starttls-enable: dHJ1ZQ==
+  keyId: Nzk1N2FlOWE4NmE1NTdiNDk5YTI0YmFiNjhlMDkwMTg=
+  encKey: NDUxMjZmZGIyNjZjMjVlNzkwZDI2NzczYzM4NGY2MjA=
+  pssh: MDAwMDAwNTQ3MDczNzM2ODAwMDAwMDAwRURFRjhCQTk3OUQ2NEFDRUEzQzgyN0RDRDUxRDIxRUQwMDAwMDAzNDA4MDExMjEwNzk1N2FlOWE4NmE1NTdiNDk5YTI0YmFiNjhlMDkwMTgxYTA4NmQ2Zjc2Njk2NDZmNmU2NTIyMTA1OTA0NDNkZGE2NDg3ZjRlYmIxNTMxY2EyYjc5Yzk0MzJhMDI1MzQ0
+  appId: MTAwMzY3ZmNiNGY0NjdhMWE0NTg0ZTc0ZWI3NjMwMDE=
+  appSecretKey: N2MyMjQ0NGMwYmFiODAzMzM0M2FjMzFiMjcwZWMwYzdjMmVjMjE2ZA==
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stb
+  namespace: dev-lower-lc
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: stb
+  template:
+    metadata:
+      labels:
+        app: stb
+      annotations:
+        gke-gcsfuse/volumes: "true"
+        gke-gcsfuse/cpu-limit: "100m"
+        gke-gcsfuse/memory-limit: "250Mi"
+        gke-gcsfuse/ephemeral-storage-limit: "2Gi"
+    spec:
+      serviceAccountName: gcs-fuse
+      tolerations:
+      - key: "instance_type"
+        operator: "Equal"
+        value: "lower-lc"
+        effect: "NoSchedule"
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: cloud.google.com/gke-nodepool
+                operator: In
+                values:
+                - lower-lc
+      terminationGracePeriodSeconds: 40
+      volumes:
+      - name: persistent-storage1
+        persistentVolumeClaim:
+          claimName: dev-lc-gcs-pvc
+      containers:
+      - name: stb
+        image: asia-south2-docker.pkg.dev/utility-braid-432305-g8/image-repository/server-api-gke-dev:dev377
+        imagePullPolicy: IfNotPresent
+        command: [ "/bin/bash", "-c", "--" ]
+        args: [ "java -jar stb-0.0.1-SNAPSHOT.jar" ]
+        env:
+        - name: username
+          valueFrom: 
+            secretKeyRef:
+              name: toqqer-secret
+              key: username
+        - name: password
+          valueFrom: 
+            secretKeyRef:
+              name: toqqer-secret
+              key: password
+        - name: jwt-token
+          valueFrom: 
+            secretKeyRef:
+              name: toqqer-secret
+              key: jwt-token     
+        - name: activemq-username
+          valueFrom: 
+            secretKeyRef:
+              name: toqqer-secret
+              key: activemq-username     
+        - name: activemq-password
+          valueFrom: 
+            secretKeyRef:
+              name: toqqer-secret
+              key: activemq-password    
+        - name: activemq-topic
+          valueFrom: 
+            secretKeyRef:
+              name: toqqer-secret
+              key: activemq-topic     
+        - name: kaleyra-sid
+          valueFrom: 
+            secretKeyRef:
+              name: toqqer-secret
+              key: kaleyra-sid     
+        - name: kaleyra-apikey
+          valueFrom: 
+            secretKeyRef:
+              name: toqqer-secret
+              key: kaleyra-apikey     
+        - name: kaleyra-senderid
+          valueFrom: 
+            secretKeyRef:
+              name: toqqer-secret
+              key: kaleyra-senderid     
+        - name: kaleyra-templateid
+          valueFrom: 
+            secretKeyRef:
+              name: toqqer-secret
+              key: kaleyra-templateid    
+        - name: twilio-account-sid
+          valueFrom: 
+            secretKeyRef:
+              name: toqqer-secret
+              key: twilio-account-sid    
+        - name: twilio-auth-token
+          valueFrom: 
+            secretKeyRef:
+              name: toqqer-secret
+              key: twilio-auth-token   
+        - name: twilio-number
+          valueFrom: 
+            secretKeyRef:
+              name: toqqer-secret
+              key: twilio-number    
+        - name: vonage-api-key
+          valueFrom: 
+            secretKeyRef:
+              name: toqqer-secret
+              key: vonage-api-key    
+        - name: vonage-api-secret
+          valueFrom: 
+            secretKeyRef:
+              name: toqqer-secret
+              key: vonage-api-secret
+        ports:
+        - containerPort: 8021
+        volumeMounts:
+        - name: persistent-storage1
+          mountPath: "/data_2"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 400M
+          limits:
+            cpu: 800m
+            memory: 2600M
+        readinessProbe:
+          tcpSocket:
+            port: 8021
+          initialDelaySeconds: 120
+          periodSeconds: 30
+        livenessProbe:
+          tcpSocket:
+            port: 8021
+          initialDelaySeconds: 120
+          periodSeconds: 20
