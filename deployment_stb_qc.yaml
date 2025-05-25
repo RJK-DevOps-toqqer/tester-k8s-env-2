@@ -1,0 +1,86 @@
+#sh 'kubectl set image deployment/stb -n toqqer-dev stb=asia-south2-docker.pkg.dev/utility-braid-432305-g8/image-repository/stb-api-gke-dev:dev$BUILD_NUMBER'
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stb
+  namespace: qc-lower-lc 
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: stb
+  template:
+    metadata:
+      labels:
+        app: stb
+      annotations:
+        gke-gcsfuse/volumes: "true"
+        gke-gcsfuse/cpu-limit: "100m"
+        gke-gcsfuse/memory-limit: "250Mi"
+        gke-gcsfuse/ephemeral-storage-limit: "2Gi"
+    spec:
+      serviceAccountName: gcs-fuse  
+      tolerations:
+      - key: "instance_type"
+        operator: "Equal"
+        value: "lower-lc"
+        effect: "NoSchedule"
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: cloud.google.com/gke-nodepool
+                operator: In
+                values:
+                - lower-lc
+      terminationGracePeriodSeconds: 40
+      containers:
+      - name: stb
+        image: asia-south1-docker.pkg.dev/utility-braid-432305-g8/qc-repository/server-api-gke-qc:latest
+        imagePullPolicy: IfNotPresent
+        command: [ "/bin/bash", "-c", "--" ]
+        args: [ "java -jar stb-0.0.1-SNAPSHOT.jar" ]
+        #env:
+        #- name: SECRET_USERNAME
+        #  valueFrom: 
+        #    secretKeyRef:
+        #      name: jwt-secret
+        #     key: username
+        #- name: SECRET_PASSWORD
+        #  valueFrom: 
+        #   secretKeyRef:
+        #      name: jwt-secret
+        #      key: password
+        #- name: SECRET_JWT_TOKEN
+        #  valueFrom: 
+        #    secretKeyRef:
+        #      name: jwt-secret
+        #     key: jwt-token        
+        ports:
+        - containerPort: 8020     
+        volumeMounts: 
+        - name: persistent-storage1
+          mountPath: "/data_2" 
+        resources:
+          requests:
+            cpu: 70m
+            memory: 100Mi
+          limits:
+            cpu: 700m
+            memory: 2300Mi
+        readinessProbe:
+          tcpSocket:
+            port: 8020
+          initialDelaySeconds: 150
+          periodSeconds: 40
+        livenessProbe:
+          tcpSocket:
+            port: 8020
+          initialDelaySeconds: 150
+          periodSeconds: 30
+      volumes:
+        - name: persistent-storage1
+          persistentVolumeClaim:
+            claimName: qc-lc-gcs-pvc
