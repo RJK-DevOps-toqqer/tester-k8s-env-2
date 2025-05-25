@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stb
+  namespace: toqqer-qc
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: stb
+  template:
+    metadata:
+      labels:
+        app: stb
+    spec:
+      tolerations:
+      - key: "node-role.kubernetes.io/master"
+        operator: "Exists"
+        effect: "NoSchedule"
+      volumes:
+      - name: persistent-storage
+        persistentVolumeClaim:
+          claimName: toqqer-qc-pvc
+      hostNetwork: true
+      imagePullSecrets:
+      - name: gcr-key
+      containers:
+      - name: stb
+        image: asia-south1-docker.pkg.dev/utility-braid-432305-g8/qc-repository/server-api-gke-qc:ov1
+        imagePullPolicy: IfNotPresent
+        command: [ "/bin/bash", "-c", "--" ]
+        args: [ "java -jar stb-0.0.1-SNAPSHOT.jar" ]
+        ports:
+        - containerPort: 8020
+        volumeMounts:
+        - name: persistent-storage
+          mountPath: "/data_2"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 400M
+          limits:
+            cpu: 1200m
+            memory: 4000M
+        readinessProbe:
+          tcpSocket:
+            port: 8020
+          initialDelaySeconds: 120
+          periodSeconds: 30
+        livenessProbe:
+          tcpSocket:
+            port: 8020
+          initialDelaySeconds: 120
+          periodSeconds: 20
