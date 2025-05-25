@@ -2,7 +2,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: toqqer-qc-pvc
-  namespace: toqqer-qc
+  namespace: toqqer-stb
 spec:
   accessModes:
     - ReadWriteOnce
